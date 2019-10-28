@@ -47,7 +47,7 @@ pub struct Tasklist {
     pub self_link: Option<String>,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOptions {
     /// Maximum number of task lists returned on one page.

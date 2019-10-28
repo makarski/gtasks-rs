@@ -115,7 +115,7 @@ pub enum TaskStatus {
     Completed,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOptions {
     /// Upper bound for a task's completion date (as a RFC 3339 timestamp) to filter by.
