@@ -14,10 +14,10 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::Client;
 
 pub use tasklists::ListOptions as TasklistsOptions;
-use tasklists::{Tasklist, Tasklists};
+pub use tasklists::{Tasklist, Tasklists};
 pub use tasks::InsertOptions as TaskInsertOptions;
 pub use tasks::ListOptions as TaskOptions;
-use tasks::{Task, Tasks};
+pub use tasks::{Task, Tasks};
 
 const BASE_URL: &'static str = "https://www.googleapis.com/tasks/v1";
 
