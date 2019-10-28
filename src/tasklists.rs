@@ -6,17 +6,17 @@ use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Tasklists {
-    // Type of the resource. This is always "tasks#taskLists".
-    kind: String,
+    /// Type of the resource. This is always "tasks#taskLists".
+    pub kind: String,
 
-    // ETag of the resource.
-    etag: String,
+    /// ETag of the resource.
+    pub etag: String,
 
-    // Token that can be used to request the next page of this result.
-    next_page_token: Option<String>,
+    /// Token that can be used to request the next page of this result.
+    pub next_page_token: Option<String>,
 
-    // Collection of task lists.
-    items: Vec<Tasklist>,
+    /// Collection of task lists.
+    pub items: Vec<Tasklist>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
