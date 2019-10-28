@@ -3,7 +3,7 @@ use reqwest::{Client, Response};
 
 use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tasklists {
     /// Type of the resource. This is always "tasks#taskLists".
@@ -19,7 +19,7 @@ pub struct Tasklists {
     pub items: Vec<Tasklist>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tasklist {
     /// Type of the resource. This is always "tasks#taskList".
