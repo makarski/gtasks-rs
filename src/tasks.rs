@@ -3,7 +3,7 @@ use reqwest::Client;
 
 use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tasks {
     /// Type of the resource. This is always "tasks#tasks".
