@@ -16,7 +16,7 @@ pub struct Tasks {
     pub next_page_token: Option<String>,
 
     /// Collection of tasks.
-    pub items: Vec<Task>,
+    pub items: Option<Vec<Task>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
