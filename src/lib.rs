@@ -6,18 +6,24 @@ extern crate reqwest;
 mod tasklists;
 mod tasks;
 
-use std::error::Error;
-use std::io::{Error as io_err, ErrorKind as io_err_kind};
-use std::result;
+use std::{
+    error::Error,
+    io::{Error as io_err, ErrorKind as io_err_kind},
+    result,
+};
 
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
-use reqwest::Client;
+use reqwest::{
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
+    Client,
+};
 
-pub use tasklists::ListOptions as TasklistsOptions;
-pub use tasklists::{Tasklist, Tasklists};
-pub use tasks::InsertOptions as TaskInsertOptions;
-pub use tasks::ListOptions as TaskOptions;
-pub use tasks::{Task, Tasks};
+pub use tasklists::{
+    ListOptions as TasklistsOptions, {Tasklist, Tasklists},
+};
+
+pub use tasks::{
+    InsertOptions as TaskInsertOptions, ListOptions as TaskOptions, {Task, Tasks},
+};
 
 const BASE_URL: &'static str = "https://www.googleapis.com/tasks/v1";
 
