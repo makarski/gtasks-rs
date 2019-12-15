@@ -22,7 +22,7 @@ pub use tasklists::{
 };
 
 pub use tasks::{
-    InsertOptions as TaskInsertOptions, ListOptions as TaskOptions, {Task, Tasks},
+    InsertOptions as TaskInsertOptions, ListOptions as TaskOptions, {Task, TaskStatus, Tasks},
 };
 
 const BASE_URL: &'static str = "https://www.googleapis.com/tasks/v1";
