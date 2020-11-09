@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use reqwest::Client;
+use serde_derive::{Deserialize, Serialize};
 
 use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
 

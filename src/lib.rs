@@ -1,11 +1,3 @@
-extern crate chrono;
-#[macro_use]
-extern crate serde_derive;
-extern crate reqwest;
-
-mod tasklists;
-mod tasks;
-
 use std::{
     error::Error,
     io::{Error as io_err, ErrorKind as io_err_kind},
@@ -17,6 +9,9 @@ use reqwest::{
     Client,
 };
 
+mod tasklists;
+mod tasks;
+
 pub use tasklists::{
     ListOptions as TasklistsOptions, {Tasklist, Tasklists},
 };
@@ -26,7 +21,7 @@ pub use tasks::{
     {Task, TaskLink, TaskStatus, Tasks},
 };
 
-const BASE_URL: &'static str = "https://www.googleapis.com/tasks/v1";
+const BASE_URL: &str = "https://www.googleapis.com/tasks/v1";
 
 pub type Result<T> = result::Result<T, Box<dyn Error>>;
 
