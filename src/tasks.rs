@@ -1,8 +1,9 @@
+use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde_derive::{Deserialize, Serialize};
 
-use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
+use super::{Result, BASE_URL};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -174,10 +175,8 @@ pub fn list(client: &Client, tasklist_id: &str, opt: Option<ListOptions>) -> Res
 
     let mut resp = builder.send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Tasks>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Tasks>()?)
 }
 
 // Returns the specified task.
@@ -191,10 +190,8 @@ pub fn get(client: &Client, tasklist_id: &str, task_id: &str) -> Result<Task> {
 
     let mut resp = client.get(url.as_str()).send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Task>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Task>()?)
 }
 
 #[derive(Serialize, Default)]
@@ -230,23 +227,22 @@ pub fn insert(
 
     let mut resp = builder.send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Task>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Task>()?)
 }
 
 // Updates the specified task.
 pub fn update(client: &Client, tasklist_id: &str, mut v: Task) -> Result<Task> {
-    if v.id.is_none() {
-        return Err(io_invalid_input_err("id can not be none"));
-    }
+    let task_id = match v.id.as_ref() {
+        Some(id) => id,
+        None => bail!("id can not be none"),
+    };
 
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
         tasklist_id = tasklist_id,
-        task_id = v.id.clone().unwrap().as_str()
+        task_id = task_id.as_str()
     );
 
     v.updated = None;
@@ -256,10 +252,8 @@ pub fn update(client: &Client, tasklist_id: &str, mut v: Task) -> Result<Task> {
         .body(serde_json::to_vec(&v)?)
         .send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Task>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Task>()?)
 }
 
 // Deletes the specified task from the task list.
@@ -273,10 +267,8 @@ pub fn delete(client: &Client, tasklist_id: &str, task_id: &str) -> Result<()> {
 
     let mut resp = client.delete(url.as_str()).send()?;
 
-    match resp.status().is_success() {
-        true => Ok(()),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(())
 }
 
 // Clears all completed tasks from the specified task list.
@@ -289,10 +281,8 @@ pub fn clear(client: &Client, tasklist_id: &str) -> Result<()> {
     );
 
     let mut resp = client.post(url.as_str()).send()?;
-    match resp.status().is_success() {
-        true => Ok(()),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(())
 }
 
 // Moves the specified task to another position in the task list.
@@ -312,10 +302,8 @@ pub fn move_task(
 
     let mut resp = client.post(url.as_str()).query(&opts).send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Task>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Task>()?)
 }
 
 // Updates the specified task. This method supports patch semantics.
@@ -332,8 +320,6 @@ pub fn patch(client: &Client, tasklist_id: &str, task_id: &str, v: Task) -> Resu
         .body(serde_json::to_vec(&v)?)
         .send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Task>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Task>()?)
 }

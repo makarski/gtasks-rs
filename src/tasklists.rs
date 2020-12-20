@@ -1,8 +1,9 @@
+use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
 use reqwest::{Client, Response};
 use serde_derive::{Deserialize, Serialize};
 
-use super::{io_invalid_input_err, io_other_err, Result, BASE_URL};
+use super::{Result, BASE_URL};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -70,10 +71,8 @@ pub fn list(client: &reqwest::Client, opt: Option<ListOptions>) -> Result<Taskli
 
     let mut resp = builder.send()?;
 
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Tasklists>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Tasklists>()?)
 }
 
 // Returns the authenticated user's specified task list.
@@ -100,14 +99,15 @@ pub fn insert(client: &reqwest::Client, b: Tasklist) -> Result<Tasklist> {
 
 // Updates the authenticated user's specified task list.
 pub fn update(client: &reqwest::Client, v: Tasklist) -> Result<Tasklist> {
-    if v.id.is_none() {
-        return Err(io_invalid_input_err("tasklist id cannot be None"));
-    }
+    let tasklist_id = match v.id.as_ref() {
+        Some(id) => id,
+        None => bail!("tasklist id cannot be None"),
+    };
 
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
-        tasklist_id = v.id.clone().unwrap()
+        tasklist_id = tasklist_id
     );
     let resp = client
         .put(url.as_str())
@@ -126,10 +126,8 @@ pub fn delete(client: &reqwest::Client, id: &str) -> Result<()> {
     );
     let mut resp = client.delete(url.as_str()).send()?;
 
-    match resp.status().is_success() {
-        true => Ok(()),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(())
 }
 
 // Updates the authenticated user's specified task list. This method supports patch semantics.
@@ -148,8 +146,6 @@ pub fn patch(client: &Client, tasklist_id: &str, v: Tasklist) -> Result<Tasklist
 }
 
 fn handle_response_tasklist(mut resp: Response) -> Result<Tasklist> {
-    match resp.status().is_success() {
-        true => Ok(resp.json::<Tasklist>()?),
-        _ => Err(io_other_err(resp.text()?)),
-    }
+    ensure!(resp.status().is_success(), resp.text()?);
+    Ok(resp.json::<Tasklist>()?)
 }

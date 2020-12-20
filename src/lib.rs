@@ -1,9 +1,4 @@
-use std::{
-    error::Error,
-    io::{Error as io_err, ErrorKind as io_err_kind},
-    result,
-};
-
+use anyhow::Result;
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
@@ -22,16 +17,6 @@ pub use tasks::{
 };
 
 const BASE_URL: &str = "https://www.googleapis.com/tasks/v1";
-
-pub type Result<T> = result::Result<T, Box<dyn Error>>;
-
-fn io_other_err(msg: String) -> Box<dyn Error> {
-    Box::new(io_err::new(io_err_kind::Other, msg))
-}
-
-fn io_invalid_input_err(msg: &str) -> Box<dyn Error> {
-    Box::new(io_err::new(io_err_kind::InvalidInput, msg))
-}
 
 pub struct Service {
     http_client: Client,
