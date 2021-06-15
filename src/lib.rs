@@ -18,6 +18,7 @@ pub use tasks::{
 
 const BASE_URL: &str = "https://www.googleapis.com/tasks/v1";
 
+#[derive(Clone)]
 pub struct Service {
     http_client: Client,
 }
