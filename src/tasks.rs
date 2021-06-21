@@ -1,6 +1,6 @@
 use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
-use reqwest::Client;
+use reqwest::{header::IF_NONE_MATCH, Client, StatusCode};
 use serde_derive::{Deserialize, Serialize};
 
 use super::{Result, BASE_URL};
@@ -161,7 +161,12 @@ pub struct ListOptions {
 }
 
 // Returns all tasks in the specified task list.
-pub fn list(client: &Client, tasklist_id: &str, opt: Option<ListOptions>) -> Result<Tasks> {
+pub fn list(
+    client: &Client,
+    tasklist_id: &str,
+    opt: Option<ListOptions>,
+    etag: Option<String>,
+) -> Result<Option<Tasks>> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks",
         base_url = BASE_URL,
@@ -169,18 +174,31 @@ pub fn list(client: &Client, tasklist_id: &str, opt: Option<ListOptions>) -> Res
     );
     let mut builder = client.get(url.as_str());
 
+    if let Some(if_none_match) = etag {
+        builder = builder.header(IF_NONE_MATCH, if_none_match);
+    }
+
     if let Some(q_opt) = opt {
         builder = builder.query(&q_opt);
     }
 
     let mut resp = builder.send()?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Tasks>()?)
+    if resp.status() == StatusCode::NOT_MODIFIED {
+        Ok(None)
+    } else {
+        ensure!(resp.status().is_success(), resp.text()?);
+        Ok(Some(resp.json::<Tasks>()?))
+    }
 }
 
 // Returns the specified task.
-pub fn get(client: &Client, tasklist_id: &str, task_id: &str) -> Result<Task> {
+pub fn get(
+    client: &Client,
+    tasklist_id: &str,
+    task_id: &str,
+    etag: Option<String>,
+) -> Result<Option<Task>> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
@@ -188,10 +206,19 @@ pub fn get(client: &Client, tasklist_id: &str, task_id: &str) -> Result<Task> {
         task_id = task_id
     );
 
-    let mut resp = client.get(url.as_str()).send()?;
+    let mut builder = client.get(url.as_str());
+    if let Some(if_none_match) = etag {
+        builder = builder.header(IF_NONE_MATCH, if_none_match);
+    }
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Task>()?)
+    let mut resp = builder.send()?;
+
+    if resp.status() == StatusCode::NOT_MODIFIED {
+        Ok(None)
+    } else {
+        ensure!(resp.status().is_success(), resp.text()?);
+        Ok(Some(resp.json::<Task>()?))
+    }
 }
 
 #[derive(Serialize, Default)]

@@ -65,13 +65,23 @@ impl Service {
     }
 
     /// Returns all tasks in the specified task list.
-    pub fn list_tasks(&self, tasklist_id: &str, opt: Option<TaskOptions>) -> Result<Tasks> {
-        tasks::list(&self.http_client, tasklist_id, opt)
+    pub fn list_tasks(
+        &self,
+        tasklist_id: &str,
+        opt: Option<TaskOptions>,
+        etag: Option<String>,
+    ) -> Result<Option<Tasks>> {
+        tasks::list(&self.http_client, tasklist_id, opt, etag)
     }
 
     /// Returns the specified task.
-    pub fn get_task(&self, tasklist_id: &str, task_id: &str) -> Result<Task> {
-        tasks::get(&self.http_client, tasklist_id, task_id)
+    pub fn get_task(
+        &self,
+        tasklist_id: &str,
+        task_id: &str,
+        etag: Option<String>,
+    ) -> Result<Option<Task>> {
+        tasks::get(&self.http_client, tasklist_id, task_id, etag)
     }
 
     /// Creates a new task on the specified task list.
