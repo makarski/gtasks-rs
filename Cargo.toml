@@ -6,7 +6,7 @@ authors = ["Simon Makarski <code@makarski.dev>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-repositiry = "https://github.com/makarski/rust_google_tasks"
+repository = "https://github.com/makarski/rust_google_tasks"
 keywords = ["google-tasks"]
 categories = ["api-bindings"]
 
