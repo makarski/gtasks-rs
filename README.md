@@ -29,7 +29,7 @@ let opts = gtasks::TaskOptions{
 let tasks = service.list_tasks(list_id, opts, None).unwrap();
 
 if let Some(tasks) = tasks {
-    let items = tasks.unwrap();
+    let items = tasks.items.unwrap();
 
     for item in items {
         println!("{:?}", item.title);
