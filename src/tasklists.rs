@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use reqwest::{Client, Response};
 use serde_derive::{Deserialize, Serialize};
 
-use super::{Result, BASE_URL};
+use super::{BASE_URL, Result};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -54,10 +54,10 @@ pub struct Tasklist {
 pub struct ListOptions {
     /// Maximum number of task lists returned on one page.
     /// Optional. The default is 20 (max allowed: 100).
-    max_results: Option<u64>,
+    pub max_results: Option<u64>,
 
     /// Token specifying the result page to return. Optional.
-    page_token: Option<String>,
+    pub page_token: Option<String>,
 }
 
 // Returns all the authenticated user's task lists.
