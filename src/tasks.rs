@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
-use reqwest::{header::IF_NONE_MATCH, Client, StatusCode};
+use reqwest::{
+    header::{CONTENT_LENGTH, IF_NONE_MATCH},
+    Client, StatusCode,
+};
 use serde_derive::{Deserialize, Serialize};
 
 use super::{Result, BASE_URL};
@@ -307,7 +310,8 @@ pub fn clear(client: &Client, tasklist_id: &str) -> Result<()> {
         tasklist_id = tasklist_id,
     );
 
-    let mut resp = client.post(url.as_str()).send()?;
+    let mut resp = client.post(url.as_str()).header(CONTENT_LENGTH, 0).send()?;
+
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(())
 }
@@ -327,7 +331,11 @@ pub fn move_task(
         task_id = task_id
     );
 
-    let mut resp = client.post(url.as_str()).query(&opts).send()?;
+    let mut resp = client
+        .post(url.as_str())
+        .header(CONTENT_LENGTH, 0)
+        .query(&opts)
+        .send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(resp.json::<Task>()?)
