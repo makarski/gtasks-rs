@@ -1,9 +1,9 @@
 use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
-use reqwest::{Client, Response};
+use reqwest::blocking::{Client as HttpClient, Response};
 use serde_derive::{Deserialize, Serialize};
 
-use super::{BASE_URL, Result};
+use super::{Result, BASE_URL};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +61,7 @@ pub struct ListOptions {
 }
 
 // Returns all the authenticated user's task lists.
-pub fn list(client: &reqwest::Client, opt: Option<ListOptions>) -> Result<Tasklists> {
+pub fn list(client: &HttpClient, opt: Option<ListOptions>) -> Result<Tasklists> {
     let url = format!("{base_url}/users/@me/lists", base_url = BASE_URL);
     let mut builder = client.get(url.as_str());
 
@@ -69,14 +69,14 @@ pub fn list(client: &reqwest::Client, opt: Option<ListOptions>) -> Result<Taskli
         builder = builder.query(&query_params);
     }
 
-    let mut resp = builder.send()?;
+    let resp = builder.send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(resp.json::<Tasklists>()?)
 }
 
 // Returns the authenticated user's specified task list.
-pub fn get(client: &reqwest::Client, id: &str) -> Result<Tasklist> {
+pub fn get(client: &HttpClient, id: &str) -> Result<Tasklist> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
@@ -87,7 +87,7 @@ pub fn get(client: &reqwest::Client, id: &str) -> Result<Tasklist> {
 }
 
 // Creates a new task list and adds it to the authenticated user's task lists.
-pub fn insert(client: &reqwest::Client, b: Tasklist) -> Result<Tasklist> {
+pub fn insert(client: &HttpClient, b: Tasklist) -> Result<Tasklist> {
     let url = format!("{base_url}/users/@me/lists", base_url = BASE_URL);
     let resp = client
         .post(url.as_str())
@@ -98,7 +98,7 @@ pub fn insert(client: &reqwest::Client, b: Tasklist) -> Result<Tasklist> {
 }
 
 // Updates the authenticated user's specified task list.
-pub fn update(client: &reqwest::Client, v: Tasklist) -> Result<Tasklist> {
+pub fn update(client: &HttpClient, v: Tasklist) -> Result<Tasklist> {
     let tasklist_id = match v.id.as_ref() {
         Some(id) => id,
         None => bail!("tasklist id cannot be None"),
@@ -118,20 +118,20 @@ pub fn update(client: &reqwest::Client, v: Tasklist) -> Result<Tasklist> {
 }
 
 // Deletes the authenticated user's specified task list.
-pub fn delete(client: &reqwest::Client, id: &str) -> Result<()> {
+pub fn delete(client: &HttpClient, id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
         tasklist_id = id
     );
-    let mut resp = client.delete(url.as_str()).send()?;
+    let resp = client.delete(url.as_str()).send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(())
 }
 
 // Updates the authenticated user's specified task list. This method supports patch semantics.
-pub fn patch(client: &Client, tasklist_id: &str, v: Tasklist) -> Result<Tasklist> {
+pub fn patch(client: &HttpClient, tasklist_id: &str, v: Tasklist) -> Result<Tasklist> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
@@ -145,7 +145,7 @@ pub fn patch(client: &Client, tasklist_id: &str, v: Tasklist) -> Result<Tasklist
     handle_response_tasklist(resp)
 }
 
-fn handle_response_tasklist(mut resp: Response) -> Result<Tasklist> {
+fn handle_response_tasklist(resp: Response) -> Result<Tasklist> {
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(resp.json::<Tasklist>()?)
 }

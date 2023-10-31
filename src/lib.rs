@@ -1,7 +1,7 @@
 use anyhow::Result;
 use reqwest::{
+    blocking::Client as HttpClient,
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
-    Client,
 };
 
 mod tasklists;
@@ -20,7 +20,7 @@ const BASE_URL: &str = "https://www.googleapis.com/tasks/v1";
 
 #[derive(Clone)]
 pub struct Service {
-    http_client: Client,
+    http_client: HttpClient,
 }
 
 impl Service {
@@ -30,7 +30,7 @@ impl Service {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         Ok(Service {
-            http_client: Client::builder().default_headers(headers).build()?,
+            http_client: HttpClient::builder().default_headers(headers).build()?,
         })
     }
 

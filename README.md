@@ -1,5 +1,7 @@
-rust_google_tasks
-=================
+gtasks
+======
+
+[![CodeScene Code Health](https://codescene.io/projects/45887/status-badges/code-health)](https://codescene.io/projects/45887)
 
 Rust Client for [Google Tasks API v1](https://developers.google.com/tasks/v1/reference)
 

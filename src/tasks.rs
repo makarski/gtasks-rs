@@ -1,8 +1,9 @@
 use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
 use reqwest::{
+    blocking::Client as HttpClient,
     header::{CONTENT_LENGTH, IF_NONE_MATCH},
-    Client, StatusCode,
+    StatusCode,
 };
 use serde_derive::{Deserialize, Serialize};
 
@@ -165,7 +166,7 @@ pub struct ListOptions {
 
 // Returns all tasks in the specified task list.
 pub fn list(
-    client: &Client,
+    client: &HttpClient,
     tasklist_id: &str,
     opt: Option<ListOptions>,
     etag: Option<String>,
@@ -185,7 +186,7 @@ pub fn list(
         builder = builder.query(&q_opt);
     }
 
-    let mut resp = builder.send()?;
+    let resp = builder.send()?;
 
     if resp.status() == StatusCode::NOT_MODIFIED {
         Ok(None)
@@ -197,7 +198,7 @@ pub fn list(
 
 // Returns the specified task.
 pub fn get(
-    client: &Client,
+    client: &HttpClient,
     tasklist_id: &str,
     task_id: &str,
     etag: Option<String>,
@@ -214,7 +215,7 @@ pub fn get(
         builder = builder.header(IF_NONE_MATCH, if_none_match);
     }
 
-    let mut resp = builder.send()?;
+    let resp = builder.send()?;
 
     if resp.status() == StatusCode::NOT_MODIFIED {
         Ok(None)
@@ -238,7 +239,7 @@ pub struct InsertOptions {
 
 // Creates a new task on the specified task list.
 pub fn insert(
-    client: &Client,
+    client: &HttpClient,
     tasklist_id: &str,
     v: Task,
     opts: Option<InsertOptions>,
@@ -255,14 +256,14 @@ pub fn insert(
         builder = builder.query(&query_params);
     }
 
-    let mut resp = builder.send()?;
+    let resp = builder.send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(resp.json::<Task>()?)
 }
 
 // Updates the specified task.
-pub fn update(client: &Client, tasklist_id: &str, mut v: Task) -> Result<Task> {
+pub fn update(client: &HttpClient, tasklist_id: &str, mut v: Task) -> Result<Task> {
     let task_id = match v.id.as_ref() {
         Some(id) => id,
         None => bail!("id can not be none"),
@@ -277,7 +278,7 @@ pub fn update(client: &Client, tasklist_id: &str, mut v: Task) -> Result<Task> {
 
     v.updated = None;
 
-    let mut resp = client
+    let resp = client
         .put(url.as_str())
         .body(serde_json::to_vec(&v)?)
         .send()?;
@@ -287,7 +288,7 @@ pub fn update(client: &Client, tasklist_id: &str, mut v: Task) -> Result<Task> {
 }
 
 // Deletes the specified task from the task list.
-pub fn delete(client: &Client, tasklist_id: &str, task_id: &str) -> Result<()> {
+pub fn delete(client: &HttpClient, tasklist_id: &str, task_id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
@@ -295,7 +296,7 @@ pub fn delete(client: &Client, tasklist_id: &str, task_id: &str) -> Result<()> {
         task_id = task_id,
     );
 
-    let mut resp = client.delete(url.as_str()).send()?;
+    let resp = client.delete(url.as_str()).send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(())
@@ -303,14 +304,14 @@ pub fn delete(client: &Client, tasklist_id: &str, task_id: &str) -> Result<()> {
 
 // Clears all completed tasks from the specified task list.
 // The affected tasks will be marked as 'hidden' and no longer be returned by default when retrieving all tasks for a task list.
-pub fn clear(client: &Client, tasklist_id: &str) -> Result<()> {
+pub fn clear(client: &HttpClient, tasklist_id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/clear",
         base_url = BASE_URL,
         tasklist_id = tasklist_id,
     );
 
-    let mut resp = client.post(url.as_str()).header(CONTENT_LENGTH, 0).send()?;
+    let resp = client.post(url.as_str()).header(CONTENT_LENGTH, 0).send()?;
 
     ensure!(resp.status().is_success(), resp.text()?);
     Ok(())
@@ -319,7 +320,7 @@ pub fn clear(client: &Client, tasklist_id: &str) -> Result<()> {
 // Moves the specified task to another position in the task list.
 // This can include putting it as a child task under a new parent and/or move it to a different position among its sibling tasks.
 pub fn move_task(
-    client: &Client,
+    client: &HttpClient,
     tasklist_id: &str,
     task_id: &str,
     opts: InsertOptions,
@@ -331,7 +332,7 @@ pub fn move_task(
         task_id = task_id
     );
 
-    let mut resp = client
+    let resp = client
         .post(url.as_str())
         .header(CONTENT_LENGTH, 0)
         .query(&opts)
@@ -342,7 +343,7 @@ pub fn move_task(
 }
 
 // Updates the specified task. This method supports patch semantics.
-pub fn patch(client: &Client, tasklist_id: &str, task_id: &str, v: Task) -> Result<Task> {
+pub fn patch(client: &HttpClient, tasklist_id: &str, task_id: &str, v: Task) -> Result<Task> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
@@ -350,7 +351,7 @@ pub fn patch(client: &Client, tasklist_id: &str, task_id: &str, v: Task) -> Resu
         task_id = task_id
     );
 
-    let mut resp = client
+    let resp = client
         .patch(url.as_str())
         .body(serde_json::to_vec(&v)?)
         .send()?;
