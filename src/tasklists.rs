@@ -1,9 +1,10 @@
-use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
-use reqwest::blocking::{Client as HttpClient, Response};
+use reqwest::Response;
+use reqwest_middleware::ClientWithMiddleware as HttpClient;
 use serde_derive::{Deserialize, Serialize};
 
-use super::{Result, BASE_URL};
+use super::{ensure_status_success, Result, BASE_URL};
+use crate::errors::TasksError::InvalidArgument;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +62,7 @@ pub struct ListOptions {
 }
 
 // Returns all the authenticated user's task lists.
-pub fn list(client: &HttpClient, opt: Option<ListOptions>) -> Result<Tasklists> {
+pub(crate) async fn list(client: &HttpClient, opt: Option<ListOptions>) -> Result<Tasklists> {
     let url = format!("{base_url}/users/@me/lists", base_url = BASE_URL);
     let mut builder = client.get(url.as_str());
 
@@ -69,39 +70,40 @@ pub fn list(client: &HttpClient, opt: Option<ListOptions>) -> Result<Tasklists> 
         builder = builder.query(&query_params);
     }
 
-    let resp = builder.send()?;
+    let resp = builder.send().await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Tasklists>()?)
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Tasklists>().await?)
 }
 
 // Returns the authenticated user's specified task list.
-pub fn get(client: &HttpClient, id: &str) -> Result<Tasklist> {
+pub(crate) async fn get(client: &HttpClient, id: &str) -> Result<Tasklist> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
         tasklist_id = id
     );
-    let resp = client.get(url.as_str()).send()?;
-    handle_response_tasklist(resp)
+    let resp = client.get(url.as_str()).send().await?;
+    handle_response_tasklist(resp).await
 }
 
 // Creates a new task list and adds it to the authenticated user's task lists.
-pub fn insert(client: &HttpClient, b: Tasklist) -> Result<Tasklist> {
+pub(crate) async fn insert(client: &HttpClient, b: Tasklist) -> Result<Tasklist> {
     let url = format!("{base_url}/users/@me/lists", base_url = BASE_URL);
     let resp = client
         .post(url.as_str())
         .body(serde_json::to_vec(&b)?)
-        .send()?;
+        .send()
+        .await?;
 
-    handle_response_tasklist(resp)
+    handle_response_tasklist(resp).await
 }
 
 // Updates the authenticated user's specified task list.
-pub fn update(client: &HttpClient, v: Tasklist) -> Result<Tasklist> {
+pub(crate) async fn update(client: &HttpClient, v: Tasklist) -> Result<Tasklist> {
     let tasklist_id = match v.id.as_ref() {
         Some(id) => id,
-        None => bail!("tasklist id cannot be None"),
+        None => return Err(InvalidArgument("tasklist id cannot be None".to_owned())),
     };
 
     let url = format!(
@@ -112,26 +114,27 @@ pub fn update(client: &HttpClient, v: Tasklist) -> Result<Tasklist> {
     let resp = client
         .put(url.as_str())
         .body(serde_json::to_vec(&v)?)
-        .send()?;
+        .send()
+        .await?;
 
-    handle_response_tasklist(resp)
+    handle_response_tasklist(resp).await
 }
 
 // Deletes the authenticated user's specified task list.
-pub fn delete(client: &HttpClient, id: &str) -> Result<()> {
+pub(crate) async fn delete(client: &HttpClient, id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
         tasklist_id = id
     );
-    let resp = client.delete(url.as_str()).send()?;
+    let resp = client.delete(url.as_str()).send().await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
+    ensure_status_success(resp).await?;
     Ok(())
 }
 
 // Updates the authenticated user's specified task list. This method supports patch semantics.
-pub fn patch(client: &HttpClient, tasklist_id: &str, v: Tasklist) -> Result<Tasklist> {
+pub(crate) async fn patch(client: &HttpClient, tasklist_id: &str, v: Tasklist) -> Result<Tasklist> {
     let url = format!(
         "{base_url}/users/@me/lists/{tasklist_id}",
         base_url = BASE_URL,
@@ -140,12 +143,13 @@ pub fn patch(client: &HttpClient, tasklist_id: &str, v: Tasklist) -> Result<Task
     let resp = client
         .patch(url.as_str())
         .body(serde_json::to_vec(&v)?)
-        .send()?;
+        .send()
+        .await?;
 
-    handle_response_tasklist(resp)
+    handle_response_tasklist(resp).await
 }
 
-fn handle_response_tasklist(resp: Response) -> Result<Tasklist> {
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Tasklist>()?)
+async fn handle_response_tasklist(resp: Response) -> Result<Tasklist> {
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Tasklist>().await?)
 }

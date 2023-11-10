@@ -1,14 +1,14 @@
 [package]
 description = "HTTP Client for Google Tasks API v1"
 name = "gtasks"
-version = "0.4.3"
+version = "0.5.0"
 authors = ["Simon Makarski <code@makarski.dev>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/makarski/gtasks-rs"
-keywords = ["google-tasks"]
-categories = ["api-bindings"]
+keywords = ["google-tasks", "google", "tasks", "api", "todo"]
+categories = ["api-bindings", "productivity"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,4 +19,8 @@ serde = "^1.0"
 serde_json = "^1.0"
 serde_derive = "^1.0"
 serde_urlencoded = "0.7"
-reqwest = { version = "0.11", features = ["json", "blocking"] }
+reqwest = { version = "0.11", features = ["json"] }
+reqwest-middleware = "0.2"
+async-trait = "0.1.74"
+task-local-extensions = "0.1.4"
+thiserror = "1.0.50"

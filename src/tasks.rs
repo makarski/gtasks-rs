@@ -1,13 +1,13 @@
-use anyhow::{bail, ensure};
 use chrono::{DateTime, Utc};
 use reqwest::{
-    blocking::Client as HttpClient,
     header::{CONTENT_LENGTH, IF_NONE_MATCH},
     StatusCode,
 };
+use reqwest_middleware::ClientWithMiddleware as HttpClient;
 use serde_derive::{Deserialize, Serialize};
 
-use super::{Result, BASE_URL};
+use super::{ensure_status_success, Result, BASE_URL};
+use crate::errors::TasksError::InvalidArgument;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -165,7 +165,7 @@ pub struct ListOptions {
 }
 
 // Returns all tasks in the specified task list.
-pub fn list(
+pub async fn list(
     client: &HttpClient,
     tasklist_id: &str,
     opt: Option<ListOptions>,
@@ -186,18 +186,18 @@ pub fn list(
         builder = builder.query(&q_opt);
     }
 
-    let resp = builder.send()?;
+    let resp = builder.send().await?;
 
     if resp.status() == StatusCode::NOT_MODIFIED {
         Ok(None)
     } else {
-        ensure!(resp.status().is_success(), resp.text()?);
-        Ok(Some(resp.json::<Tasks>()?))
+        let resp = ensure_status_success(resp).await?;
+        Ok(Some(resp.json::<Tasks>().await?))
     }
 }
 
 // Returns the specified task.
-pub fn get(
+pub async fn get(
     client: &HttpClient,
     tasklist_id: &str,
     task_id: &str,
@@ -215,13 +215,13 @@ pub fn get(
         builder = builder.header(IF_NONE_MATCH, if_none_match);
     }
 
-    let resp = builder.send()?;
+    let resp = builder.send().await?;
 
     if resp.status() == StatusCode::NOT_MODIFIED {
         Ok(None)
     } else {
-        ensure!(resp.status().is_success(), resp.text()?);
-        Ok(Some(resp.json::<Task>()?))
+        let resp = ensure_status_success(resp).await?;
+        Ok(Some(resp.json::<Task>().await?))
     }
 }
 
@@ -238,7 +238,7 @@ pub struct InsertOptions {
 }
 
 // Creates a new task on the specified task list.
-pub fn insert(
+pub async fn insert(
     client: &HttpClient,
     tasklist_id: &str,
     v: Task,
@@ -256,17 +256,17 @@ pub fn insert(
         builder = builder.query(&query_params);
     }
 
-    let resp = builder.send()?;
+    let resp = builder.send().await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Task>()?)
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Task>().await?)
 }
 
 // Updates the specified task.
-pub fn update(client: &HttpClient, tasklist_id: &str, mut v: Task) -> Result<Task> {
+pub async fn update(client: &HttpClient, tasklist_id: &str, mut v: Task) -> Result<Task> {
     let task_id = match v.id.as_ref() {
         Some(id) => id,
-        None => bail!("id can not be none"),
+        None => return Err(InvalidArgument("task id cannot be None".to_owned())),
     };
 
     let url = format!(
@@ -281,14 +281,15 @@ pub fn update(client: &HttpClient, tasklist_id: &str, mut v: Task) -> Result<Tas
     let resp = client
         .put(url.as_str())
         .body(serde_json::to_vec(&v)?)
-        .send()?;
+        .send()
+        .await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Task>()?)
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Task>().await?)
 }
 
 // Deletes the specified task from the task list.
-pub fn delete(client: &HttpClient, tasklist_id: &str, task_id: &str) -> Result<()> {
+pub async fn delete(client: &HttpClient, tasklist_id: &str, task_id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
@@ -296,30 +297,34 @@ pub fn delete(client: &HttpClient, tasklist_id: &str, task_id: &str) -> Result<(
         task_id = task_id,
     );
 
-    let resp = client.delete(url.as_str()).send()?;
+    let resp = client.delete(url.as_str()).send().await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
+    ensure_status_success(resp).await?;
     Ok(())
 }
 
 // Clears all completed tasks from the specified task list.
 // The affected tasks will be marked as 'hidden' and no longer be returned by default when retrieving all tasks for a task list.
-pub fn clear(client: &HttpClient, tasklist_id: &str) -> Result<()> {
+pub async fn clear(client: &HttpClient, tasklist_id: &str) -> Result<()> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/clear",
         base_url = BASE_URL,
         tasklist_id = tasklist_id,
     );
 
-    let resp = client.post(url.as_str()).header(CONTENT_LENGTH, 0).send()?;
+    let resp = client
+        .post(url.as_str())
+        .header(CONTENT_LENGTH, 0)
+        .send()
+        .await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
+    ensure_status_success(resp).await?;
     Ok(())
 }
 
 // Moves the specified task to another position in the task list.
 // This can include putting it as a child task under a new parent and/or move it to a different position among its sibling tasks.
-pub fn move_task(
+pub async fn move_task(
     client: &HttpClient,
     tasklist_id: &str,
     task_id: &str,
@@ -336,14 +341,15 @@ pub fn move_task(
         .post(url.as_str())
         .header(CONTENT_LENGTH, 0)
         .query(&opts)
-        .send()?;
+        .send()
+        .await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Task>()?)
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Task>().await?)
 }
 
 // Updates the specified task. This method supports patch semantics.
-pub fn patch(client: &HttpClient, tasklist_id: &str, task_id: &str, v: Task) -> Result<Task> {
+pub async fn patch(client: &HttpClient, tasklist_id: &str, task_id: &str, v: Task) -> Result<Task> {
     let url = format!(
         "{base_url}/lists/{tasklist_id}/tasks/{task_id}",
         base_url = BASE_URL,
@@ -354,8 +360,9 @@ pub fn patch(client: &HttpClient, tasklist_id: &str, task_id: &str, v: Task) -> 
     let resp = client
         .patch(url.as_str())
         .body(serde_json::to_vec(&v)?)
-        .send()?;
+        .send()
+        .await?;
 
-    ensure!(resp.status().is_success(), resp.text()?);
-    Ok(resp.json::<Task>()?)
+    let resp = ensure_status_success(resp).await?;
+    Ok(resp.json::<Task>().await?)
 }

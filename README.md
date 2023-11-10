@@ -9,32 +9,54 @@ Rust Client for [Google Tasks API v1](https://developers.google.com/tasks/v1/ref
 
 ```toml
 [dependencies]
-gtasks = "0.4"
+gtasks = "0.5"
 ```
 Read tasks
 
 ```rust,no_run
-// create a service
-let service = gtasks::Service::new("google_token").unwrap();
+use gtasks::Service;
 
-// obtain tasklist id
-let tasklists = service.list_tasklists(None).unwrap();
-let list_id = tasklists.items[0].id.unwrap();
+async fn main() {
+    // Option 1: use static token
+    let task_srvc = Service::with_token("access_token").unwrap();
+    read_tasks(&task_srvc).await;
 
-// print tasks from the list
-let opts = gtasks::TaskOptions{
-    max_results: Some(5),
-    show_completed: Some(true),
-    show_hidden: Some(true),
-};
+    // Option 2: use closure to obtain auth token
+    let token_provider = || {
+        Ok("access_token".to_owned())
+    };
 
-let tasks = service.list_tasks(list_id, opts, None).unwrap();
+    let task_srvc = Service::with_auth(token_provider).unwrap();
+    read_tasks(&task_srvc).await;
+}
 
-if let Some(tasks) = tasks {
-    let items = tasks.items.unwrap();
+async fn read_tasks(task_srvc: &Service) {
+    let tasklists = task_srvc.list_tasklists(None).await.unwrap();
+    for tasklist in tasklists.items.iter() {
+        println!("tasklist: {}", tasklist.title.as_ref().unwrap());
+    }
 
-    for item in items {
-        println!("{:?}", item.title);
+    let list_id = tasklists.items[0].id.as_ref().unwrap();
+
+    // print tasks from the list
+    let opts = gtasks::TaskOptions {
+        max_results: Some(5),
+        show_completed: Some(true),
+        show_hidden: Some(true),
+        ..Default::default()
+    };
+
+    let tasks = task_srvc
+        .list_tasks(list_id, Some(opts), None)
+        .await
+        .unwrap();
+
+    if let Some(tasks) = tasks {
+        let items = tasks.items.unwrap();
+
+        for item in items {
+            println!("{:?}", item.title);
+        }
     }
 }
 ```
